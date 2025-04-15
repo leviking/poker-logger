@@ -56,23 +56,46 @@
             border-radius: var(--border-radius);
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
-        
+
         /* Display Area */
         .display {
             background-color: var(--display-bg);
             color: var(--display-text);
-            padding: 15px 20px;
+            padding: 15px 20px; /* Keep padding */
             border-radius: var(--border-radius);
             font-family: 'DS14ML', monospace; /* Use DS14ML first */
-            font-size: 1.8em;
-            font-weight: bold;
-            min-height: 96px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-size: 2.4em; /* Main font size */
+            font-weight: normal; /* Reset weight, let font handle it */
+            min-height: 96px; /* Give it some initial height */
+            display: flex; /* Keep flex for main text centering */
+            justify-content: center; /* Center main text horizontally */
+            align-items: center;   /* Center main text vertically */
             text-align: center;
-            letter-spacing: 2px;
+            letter-spacing: 3px; /* ADJUST SPACING as needed */
             border: 1px solid #555;
+            overflow: hidden; /* Hide potential overflow if needed */
+            position: relative; /* Make it a positioning context for the counter */
+        }
+        
+        /* Style for the main display text span (optional, mostly inherits) */
+        #main-display-text {
+           /* Inherits flex centering from parent .display */
+           overflow-wrap: break-word; /* Ensure long text wraps */
+           line-height: 1.2; /* Adjust line height if needed */
+           flex-grow: 1; /* Allow it to take available space */
+        }
+        
+        /* Style for the hand counter span */
+        #hand-counter {
+            position: absolute; /* Position relative to .display */
+            top: 5px;           /* Distance from top */
+            right: 10px;          /* Distance from right */
+            font-size: 0.4em;     /* Make it much smaller */
+            font-family: 'DS14ML', monospace; /* Use a simple monospace font */
+            color: #a0a0a0;       /* Slightly dimmer color */
+            font-weight: normal;
+            line-height: 1;       /* Ensure tight line height */
+            letter-spacing: 1px;  /* Adjust spacing */
         }
         
         /* Grid Container for Buttons */
@@ -196,7 +219,9 @@
 <body>
 
     <div class="poker-logger">
-        <div class="display" id="hand-display">--</div>
+        <div class="display" id="hand-display">
+            <span id="main-display-text">--</span> <span id="hand-counter">0</span>
+        </div>
 
         <div class="button-grid main-inputs">
             <button class="btn btn-card">K</button>
@@ -227,103 +252,116 @@
         let card2 = null;
         let suitModifier = null; // 's', 'o', or null
         let outcome = null; // 'Win', 'Lose', 'Fold', or null
-
+        let handCount = 0; // <<<<<<< ADD counter variable
+    
         // --- DOM Elements ---
         const displayElement = document.getElementById('hand-display');
+        const mainDisplayTextElement = document.getElementById('main-display-text'); // <<<<<<< ADD reference to main text span
+        const counterElement = document.getElementById('hand-counter'); // <<<<<<< ADD reference to counter span
         const cardButtons = document.querySelectorAll('.btn-card');
         const modifierButtons = document.querySelectorAll('.btn-modifier');
         const outcomeButtons = document.querySelectorAll('.btn-outcome');
-        // Target action buttons individually or add specific classes/ids if needed
         const clearButton = document.querySelector('.btn-action.clear');
-        const hideButton = document.querySelector('.btn-action:not(.clear)'); // Simple way to get hide button
-
+        const hideButton = document.querySelector('.btn-action:not(.clear)');
+    
         // --- Card Rank Order (High to Low for sorting) ---
         const rankOrder = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-
+    
         // --- Update Display Function ---
         function updateDisplay() {
             let handString = '';
             let displayString = '';
-
+    
             // Build hand string (Sort cards, handle pairs, add modifier)
             if (card1 && card2) {
                 const rank1Index = rankOrder.indexOf(card1);
                 const rank2Index = rankOrder.indexOf(card2);
-
-                // Determine higher and lower rank card based on index (lower index is higher rank)
                 const sortedCard1 = rank1Index < rank2Index ? card1 : card2;
                 const sortedCard2 = rank1Index < rank2Index ? card2 : card1;
-
-                // If it's a pair, just show the pair (no suit modifier)
                 if (sortedCard1 === sortedCard2) {
                     handString = sortedCard1 + sortedCard2;
                 } else {
-                    // Otherwise, show sorted cards + suit modifier if it exists
-                    handString = sortedCard1 + sortedCard2 + (suitModifier || ''); // Append 's' or 'o'
+                    handString = sortedCard1 + sortedCard2 + (suitModifier || '');
                 }
             } else if (card1) {
-                // Only one card selected
                 handString = card1;
             } else {
-                // No cards selected
                 handString = '--';
             }
-
-            // Combine hand and outcome for final display
+    
+            // Combine hand and outcome for final display string
             if (handString !== '--' && outcome) {
-                displayString = `${handString} : ${outcome}`;
+                displayString = `${handString} - ${outcome}`;
             } else if (handString !== '--') {
                 displayString = handString;
             } else if (outcome) {
-                 // Only show outcome if no hand is selected yet
                 displayString = outcome;
+            } else {
+                displayString = '--';
             }
-            else {
-                displayString = '--'; // Default placeholder
-            }
-
-            displayElement.textContent = displayString;
+    
+            // Update the main display text
+            mainDisplayTextElement.textContent = displayString; // <<<<<<< UPDATE target element
+    
+            // Update the counter display text
+            counterElement.textContent = handCount; // <<<<<<< UPDATE counter element
         }
-
+    
         // --- Event Listeners ---
-
+    
         // Card Buttons (A-2)
         cardButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const rank = button.textContent;
-
-                if (!card1) { // Selecting first card
+                 let handWasComplete = (card1 && card2); // Check if hand was complete before this click
+    
+                if (!card1) {
                     card1 = rank;
-                    suitModifier = null; // Reset modifier when first card is picked
-                    outcome = null; // Also reset outcome
-                } else if (!card2) { // Selecting second card
-                    // Prevent selecting the exact same button twice unless forming a pair
-                    if (rank !== card1) {
-                         card2 = rank;
-                    } else { // Allow selecting same rank for a pair
-                        card2 = rank;
-                        suitModifier = null; // Pairs can't be suited/offsuit
-                    }
-                } else { // Both cards already selected, start new hand
-                    card1 = rank;
-                    card2 = null;
                     suitModifier = null;
-                     outcome = null; // Reset outcome too
+                    // Don't reset outcome if just starting a new hand after logging previous one
+                    // outcome = null;
+                } else if (!card2) {
+                     if(rank !== card1) {
+                         card2 = rank;
+                     } else {
+                         card2 = rank;
+                         suitModifier = null;
+                     }
+                } else { // Both cards already selected
+                     // If the previous hand had an outcome, assume starting fresh (don't clear outcome yet)
+                     // Otherwise, treat as modifying the current hand
+                    if(outcome) {
+                        card1 = rank;
+                        card2 = null;
+                        suitModifier = null;
+                        outcome = null; // Clear outcome only when starting a new hand after logging
+                    } else {
+                        card1 = rank; // Replace first card if no outcome was logged
+                        card2 = null;
+                        suitModifier = null;
+                    }
                 }
-
-                // Automatically clear suit modifier if a pair is formed
+    
                 if (card1 && card2 && card1 === card2) {
                     suitModifier = null;
                 }
-
+    
+                // If we just completed the hand (went from 1 card to 2)
+                // and an outcome was already selected, clear the outcome
+                // because the hand changed.
+                let handIsNowComplete = (card1 && card2);
+                if(handIsNowComplete && !handWasComplete && outcome) {
+                     outcome = null;
+                }
+    
+    
                 updateDisplay();
             });
         });
-
+    
         // Modifier Buttons (Suited, Off)
         modifierButtons.forEach(button => {
             button.addEventListener('click', () => {
-                // Only allow setting modifier if two DIFFERENT cards are selected
                 if (card1 && card2 && card1 !== card2) {
                     if (button.textContent === 'Suited') {
                         suitModifier = 's';
@@ -332,29 +370,31 @@
                     }
                     updateDisplay();
                 } else if (card1 && card2 && card1 === card2) {
-                    console.warn("Cannot set suited/off-suit for pairs."); // User feedback
+                    console.warn("Cannot set suited/off-suit for pairs.");
                 } else {
-                    console.warn("Select two different cards before setting suited/off-suit."); // User feedback
+                    console.warn("Select two different cards before setting suited/off-suit.");
                 }
             });
         });
-
+    
         // Outcome Buttons (Win, Lose, Fold)
         outcomeButtons.forEach(button => {
             button.addEventListener('click', () => {
-                // Only set outcome if at least a hand is started (card1 exists)
-                if (card1) {
-                     outcome = button.textContent;
+                // Require at least two cards to log an outcome and increment counter
+                if (card1 && card2) {
+                     // Only increment counter if setting outcome for the first time for this hand
+                     if (!outcome) {
+                        handCount++; // <<<<<<< INCREMENT counter here
+                     }
+                     outcome = button.textContent; // Set or overwrite outcome
                      updateDisplay();
-                     // Optional: Log the final hand and outcome here
-                     // console.log(`Logged: ${displayElement.textContent}`);
+                     // console.log(`Logged Hand #${handCount}: ${mainDisplayTextElement.textContent}`);
                 } else {
-                    console.warn("Select cards for the hand first.");
+                    console.warn("Select two cards for the hand before choosing outcome.");
                 }
-
             });
         });
-
+    
         // Clear Button
         if (clearButton) {
             clearButton.addEventListener('click', () => {
@@ -362,28 +402,28 @@
                 card2 = null;
                 suitModifier = null;
                 outcome = null;
+                // Hand count does NOT reset on clear
                 updateDisplay();
             });
         }
-
-        // Hide Button (Placeholder)
+    
+        // Hide Button (Example visibility toggle)
         if (hideButton) {
             hideButton.addEventListener('click', () => {
-                // Functionality TBD - Example: toggle display visibility
                 if (displayElement.style.visibility === 'hidden') {
                      displayElement.style.visibility = 'visible';
-                     hideButton.textContent = 'Hide'; // Change back button text
+                     hideButton.textContent = 'Hide';
                 } else {
                     displayElement.style.visibility = 'hidden';
-                    hideButton.textContent = 'Show'; // Change button text
+                    hideButton.textContent = 'Show';
                 }
                 console.log('Hide button clicked - Toggling display visibility.');
             });
         }
-
+    
         // --- Initial Display Update On Load ---
         updateDisplay();
-
+    
     </script>
 
     </body>
