@@ -4,11 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Element References ---
     const mainDisplayTextElement = document.getElementById('main-display-text');
     const counterElement = document.getElementById('hand-counter');
-    // NEW: Stat value element references
+    // Stat value element references
     const foldPercentElement = document.getElementById('fold-percent');
     const winPercentElement = document.getElementById('win-percent');
     const losePercentElement = document.getElementById('lose-percent');
-    // Button References (remain the same)
+    // Button References
     const cardButtons = document.querySelectorAll('.btn-card');
     const modifierButtons = document.querySelectorAll('.btn-modifier');
     const outcomeButtons = document.querySelectorAll('.btn-outcome');
@@ -22,17 +22,74 @@ document.addEventListener('DOMContentLoaded', () => {
     let outcome = null; // 'Win~', 'Lose', 'Fold'
     let handCount = 0; // Total logged hands (Win+Lose+Fold)
     let isHidden = false;
-    // NEW: State variables for win/loss/fold counts
+    // State variables for win/loss/fold counts
     let winCount = 0;
     let loseCount = 0;
     let foldCount = 0;
 
-    // --- Constants --- (Remain the same)
+    // --- Constants ---
     const RANK_ORDER = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
     const PLACEHOLDER_STRING = '~.~.~.:~.~.~.~.';
     const HIDE_CHAR = '*';
+    const STORAGE_KEY = 'pokerLoggerData';
 
-    // --- Helper Functions --- (maskHandDisplay, calculateRawDisplayString, stylizeDisplayString remain the same)
+    // --- Helper Functions ---
+
+    // Load data from localStorage
+    function loadData() {
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                // Restore counts
+                winCount = data.winCount || 0;
+                loseCount = data.loseCount || 0;
+                foldCount = data.foldCount || 0;
+                handCount = data.handCount || 0;
+                
+                // Optionally restore current hand state
+                card1 = data.card1 || null;
+                card2 = data.card2 || null;
+                suitModifier = data.suitModifier || null;
+                outcome = data.outcome || null;
+                isHidden = data.isHidden || false;
+                
+                // Update UI elements
+                hideButton.textContent = isHidden ? 'Show' : 'Hide';
+            } catch (e) {
+                console.error('Error loading saved data:', e);
+                // Reset to defaults if error
+                resetCounts();
+            }
+        }
+        updateDisplay();
+    }
+
+    // Save data to localStorage
+    function saveData() {
+        const data = {
+            winCount,
+            loseCount,
+            foldCount,
+            handCount,
+            card1,
+            card2, 
+            suitModifier,
+            outcome,
+            isHidden
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    // Reset all counters but keep current hand state
+    function resetCounts() {
+        winCount = 0;
+        loseCount = 0; 
+        foldCount = 0;
+        handCount = 0;
+        saveData();
+        updateDisplay();
+    }
 
     function maskHandDisplay(displayStr, shouldMask) {
         if (!shouldMask) return displayStr;
@@ -72,10 +129,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function padNumber(num) {
-	return String(num).padStart(3, '0');
+        return String(num).padStart(3, '0');
     }
 
-    // --- Main Update Function --- (Modified to include stats update)
+    // --- Main Update Function ---
     function updateDisplay() {
         // 1. Calculate the raw main display string
         const rawDisplayString = calculateRawDisplayString();
@@ -89,14 +146,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // 5. Update overall hand counter
         counterElement.textContent = handCount;
 
-        // --- NEW: Calculate and Update Stats ---
+        // Calculate and Update Stats
         if (handCount > 0) {
             const foldPercent = Math.round((foldCount / handCount) * 100);
             const winPercent = Math.round((winCount / handCount) * 100);
             const losePercent = Math.round((loseCount / handCount) * 100);
             // Update stats DOM elements
             foldPercentElement.textContent = `${padNumber(foldPercent)}%`;
-	    winPercentElement.textContent = `${padNumber(winPercent)}%`;
+            winPercentElement.textContent = `${padNumber(winPercent)}%`;
             losePercentElement.textContent = `${padNumber(losePercent)}%`;
         } else {
             // Reset stats display if handCount is 0
@@ -104,12 +161,14 @@ document.addEventListener('DOMContentLoaded', () => {
             winPercentElement.textContent = `000%`;
             losePercentElement.textContent = `000%`;
         }
+
+        // Save state after every update
+        saveData();
     }
 
     // --- Event Handler Functions ---
 
-    // handleCardClick, handleModifierClick (Remain the same)
-     function handleCardClick(rank) {
+    function handleCardClick(rank) {
         let handWasComplete = (card1 && card2);
 
         if (!card1) {
@@ -139,14 +198,13 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDisplay();
     }
 
-     function handleModifierClick(type) {
+    function handleModifierClick(type) {
         if (card1 && card2 && card1 !== card2) {
             suitModifier = type;
             updateDisplay();
         }
     }
 
-    // handleOutcomeClick (Modified to update specific win/loss/fold counts)
     function handleOutcomeClick(selectedOutcomeText) {
         if (card1 && card2) {
             let currentOutcomeValue = null;
@@ -176,7 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
                  currentOutcomeValue = outcome;
             }
 
-
              if (newlyLogged) {
                 handCount++; // Increment total ONLY if it's a new outcome for this hand
              }
@@ -191,26 +248,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // handleClearClick (Modified to potentially reset stats if needed - currently doesn't)
     function handleClearClick() {
+        // Check if it's a long press (reset stats)
+        if (clearButton.dataset.longPress === 'true') {
+            // Reset counts only, not current hand
+            resetCounts();
+            // Reset long press flag
+            clearButton.dataset.longPress = 'false';
+            return;
+        }
+        
+        // Regular clear - just reset current hand
         card1 = null;
         card2 = null;
         suitModifier = null;
         outcome = null;
-        // Note: Stats (win/lose/fold counts) and handCount currently PERSIST on clear.
-        // If you want to reset stats on clear, uncomment below:
-        // winCount = 0; loseCount = 0; foldCount = 0; handCount = 0;
         updateDisplay();
     }
 
-     // handleHideClick (Remains the same)
     function handleHideClick() {
         isHidden = !isHidden;
         hideButton.textContent = isHidden ? 'Show' : 'Hide';
         updateDisplay();
     }
 
-    // --- Attach Event Listeners --- (Remain the same)
+    // --- Long Press Detection ---
+    let longPressTimer;
+    
+    function startLongPress(e) {
+        // Only proceed for clear button
+        if (!e.target.classList.contains('clear')) return;
+        
+        longPressTimer = setTimeout(() => {
+            e.target.dataset.longPress = 'true';
+            e.target.classList.add('long-press');
+            
+            // Provide visual/haptic feedback that long press was detected
+            if ('vibrate' in navigator) {
+                navigator.vibrate(100);
+            }
+        }, 1000); // 1 second for long press
+    }
+    
+    function endLongPress(e) {
+        clearTimeout(longPressTimer);
+        e.target.classList.remove('long-press');
+    }
+
+    // --- Attach Event Listeners ---
     cardButtons.forEach(button => {
         button.addEventListener('click', () => handleCardClick(button.textContent));
     });
@@ -221,10 +306,74 @@ document.addEventListener('DOMContentLoaded', () => {
     outcomeButtons.forEach(button => {
         button.addEventListener('click', () => handleOutcomeClick(button.textContent));
     });
-    if (clearButton) clearButton.addEventListener('click', handleClearClick);
-    if (hideButton) hideButton.addEventListener('click', handleHideClick);
+    
+    if (clearButton) {
+        clearButton.addEventListener('click', handleClearClick);
+        clearButton.addEventListener('touchstart', startLongPress);
+        clearButton.addEventListener('mousedown', startLongPress);
+        clearButton.addEventListener('touchend', endLongPress);
+        clearButton.addEventListener('mouseup', endLongPress);
+        clearButton.addEventListener('mouseleave', endLongPress);
+    }
+    
+    if (hideButton) {
+        hideButton.addEventListener('click', handleHideClick);
+    }
 
-    // --- Initial Display Update ---
-    updateDisplay();
+    // --- Add Swipe to Clear Gesture ---
+    let xDown = null;
+    let yDown = null;
+    
+    document.addEventListener('touchstart', (e) => {
+        xDown = e.touches[0].clientX;
+        yDown = e.touches[0].clientY;
+    });
+    
+    document.addEventListener('touchend', (e) => {
+        if (!xDown || !yDown) return;
+        
+        const xUp = e.changedTouches[0].clientX;
+        const yUp = e.changedTouches[0].clientY;
+        
+        const xDiff = xDown - xUp;
+        const yDiff = yDown - yUp;
+        
+        // Horizontal swipe detection (left to right)
+        if (Math.abs(xDiff) > Math.abs(yDiff) && xDiff < -50) {
+            // Swipe right detected - clear current hand
+            handleClearClick();
+        }
+        
+        xDown = null;
+        yDown = null;
+    });
+    
+    // --- Prevent Zooming on Double-Tap for iOS ---
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            e.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, { passive: false });
+
+    // --- Prevent Pull-to-Refresh in PWA Mode ---
+    document.addEventListener('touchmove', (e) => {
+        if (window.navigator.standalone) {
+            if (e.touches.length === 1 && e.targetTouches[0].pageY < 10) {
+                e.preventDefault();
+            }
+        }
+    }, { passive: false });
+
+    // --- Initialize App ---
+    loadData(); // Load saved data on startup
+    
+    // Check if app is in standalone mode (installed PWA)
+    if (window.matchMedia('(display-mode: standalone)').matches || 
+        window.navigator.standalone === true) {
+        document.body.classList.add('pwa-mode');
+    }
 
 }); // End DOMContentLoaded listener

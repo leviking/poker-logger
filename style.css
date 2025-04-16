@@ -19,20 +19,34 @@
     --display-text: #F5F5F5; /* Text color for the display */
     --border-radius: 4px;    /* Subtle rounding */
     --gap: 8px;              /* Gap between grid items */
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent; /* Remove tap highlight on iOS */
 }
 
 html, body {
     height: 100%;
-    font-family: monospace, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Clean sans-serif */
+    font-family: monospace, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.5;
+    overscroll-behavior: none; /* Prevent pull-to-refresh */
+    user-select: none; /* Prevent text selection */
+    -webkit-user-select: none;
+    -webkit-touch-callout: none; /* Prevent iOS callout on long-press */
+}
+
+/* PWA specific styling */
+body.pwa-mode {
+    /* Apply safe area insets for notches, home indicators, etc. */
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
 }
 
 /* Main Container */
@@ -41,6 +55,8 @@ html, body {
     min-height: 100vh; /* Ensure it takes at least full viewport height */
     margin: 0 auto;   /* Center horizontally */
     padding: 15px;
+    padding-top: max(15px, var(--safe-area-inset-top));
+    padding-bottom: max(15px, var(--safe-area-inset-bottom));
     background-color: #D8D8D8; /* Slightly different grey for the main panel */
     display: flex;
     justify-content: flex-end;
@@ -56,14 +72,12 @@ html, body {
 .display {
     background-color: var(--display-bg);
     border-radius: var(--border-radius);
-    font-family: 'DS14ML', 'Courier New', Courier, monospace;
-    /* font-size: 2.4em; /* Base size now set on children */
+    font-family: 'DS14ML', monospace;
     font-weight: normal;
     min-height: 120px; /* Increased height for stats */
     padding: 10px 20px; /* Adjust padding */
     border: 1px solid #555;
     position: relative; /* Crucial for positioning children */
-    /* text-align: center; /* Centering handled by flex */
     line-height: 1.2;
     letter-spacing: 3px;
     overflow: hidden;
@@ -74,7 +88,7 @@ html, body {
     gap: 10px; /* Optional gap between rows */
 }
 
-/* NEW: Stats Row Container */
+/* Stats Row Container */
 .stats-display {
     display: flex;
     justify-content: space-around; /* Space out stat items */
@@ -88,7 +102,7 @@ html, body {
     flex-shrink: 0; /* Prevent shrinking */
 }
 
-/* NEW: Individual Stat Item (Label + Value) */
+/* Individual Stat Item (Label + Value) */
 .stat-item {
     display: flex;
     flex-direction: column; /* Stack label above value */
@@ -96,7 +110,7 @@ html, body {
     text-align: center;
 }
 
-/* NEW: Stat Label Styling */
+/* Stat Label Styling */
 .stat-label {
     font-weight: bold;
     font-size: 0.8em; /* Slightly smaller label */
@@ -104,16 +118,16 @@ html, body {
     margin-bottom: 2px;
 }
 
-/* NEW: Stat Value Styling */
+/* Stat Value Styling */
 .stat-value {
-    font-family: 'DS14ML', 'Courier New', Courier, monospace;
+    font-family: 'DS14ML', monospace;
     font-weight: bold;
     font-size: 1.1em; /* Make value slightly larger */
     min-width: 3ch; /* Ensure minimum width for alignment (e.g., 100%) */
     display: inline-block;
 }
 
-/* NEW: Color coding for stat values */
+/* Color coding for stat values */
 .fold-stat .stat-value {
     color: rgb(221, 66, 105);
 }
@@ -127,7 +141,7 @@ html, body {
 /* Existing Main Display Text Area */
 #main-display-text {
     font-size: 2.4em; /* Restore main font size */
-    font-family: 'DS14ML', 'Courier New', Courier, monospace; /* Ensure correct font */
+    font-family: 'DS14ML', monospace; /* Ensure correct font */
     letter-spacing: 3px; /* Restore letter spacing */
     line-height: 1.2;
     white-space: pre;
@@ -157,7 +171,7 @@ html, body {
     top: 5px;
     right: 10px;
     font-size: 0.4em;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: monospace, sans-serif;
     color: #a0a0a0;
     font-weight: normal;
     line-height: 1;
@@ -184,7 +198,6 @@ html, body {
     padding: 10px; /* Base padding */
     border-radius: var(--border-radius);
     font-size: 1.1em;
-    /*font-weight: 600; */
     cursor: pointer;
     transition: background-color 0.2s ease, transform 0.1s ease;
     display: flex; /* Keep flex for alignment */
@@ -202,10 +215,7 @@ html, body {
 .main-inputs .btn {
    aspect-ratio: 1 / 1; /* Attempt to keep them square */
    padding: 5px; /* Reset padding for square buttons */
-   /* font-size: 1.3em;  */
 }
-
-/* === NEW/MODIFIED STYLES START HERE === */
 
 /* Style for CARD RANK buttons (A-2) */
 .btn-card {
@@ -218,8 +228,6 @@ html, body {
     font-size: 1.1em;                    /* Adjust font size if needed */
     font-weight: bold;                   /* Make rank stand out */
 }
-
-/* === NEW/MODIFIED STYLES END HERE === */
 
 /* Style for Modifier buttons (S, O) - using default light button style now */
 .btn-modifier {
@@ -235,14 +243,25 @@ html, body {
     font-size: .75em;
     justify-content: flex-start;         /* Align text horizontal start (left) */
     align-items: flex-start;             /* Align text vertical start (top) */
-   /* Add specific styles if needed, e.g., Clr might be accent */
 }
+
 .btn-action.clear { /* Example: making Clr button use accent color */
      background-color: var(--accent-color);
      color: var(--accent-text);
      border-color: #cc5800;
 }
 
+/* Long press style for clear button */
+.btn-action.clear.long-press {
+    background-color: #D32F2F; /* Red for reset confirmation */
+    color: white;
+    animation: pulse 0.5s infinite alternate;
+}
+
+@keyframes pulse {
+    from { opacity: 0.8; }
+    to { opacity: 1; }
+}
 
 /* Specific Outcome Styling (Win/Lose/Fold) */
 .btn-outcome.win {
@@ -267,7 +286,6 @@ html, body {
     align-items: center;   /* Override card style if needed */
 }
 
-
 /* Interaction States */
 .btn:hover {
     filter: brightness(1.1); /* Adjusted brightness for lighter/darker buttons */
@@ -280,4 +298,60 @@ html, body {
     transform: scale(0.96);
     filter: brightness(0.9);
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Add minimal button active states for iOS */
+@media (hover: none) {
+    .btn:active {
+        transform: scale(0.96);
+        opacity: 0.8;
+    }
+}
+
+/* Installation prompt */
+.install-prompt {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #333;
+    color: white;
+    padding: 12px;
+    text-align: center;
+    display: none; /* Hidden by default */
+    z-index: 9999;
+    font-family: sans-serif;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+}
+
+.install-prompt.visible {
+    display: block;
+    animation: slideUp 0.3s forwards;
+}
+
+.install-prompt button {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin-left: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.install-prompt .close {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    font-size: 18px;
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
 }

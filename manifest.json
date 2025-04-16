@@ -1,0 +1,23 @@
+{
+  "name": "Poker Hand Logger",
+  "short_name": "Poker Log",
+  "description": "Log and track your poker hand results",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#D8D8D8",
+  "theme_color": "#282828",
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
