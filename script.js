@@ -40,8 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Mask hand parts only if they contain actual data (not '~')
         if (card1) chars[0] = HIDE_CHAR; // Mask Card 1 position
-        if (card2) chars[2] = HIDE_CHAR; // Mask Card 2 position
-        if (suitModifier) chars[4] = HIDE_CHAR; // Mask Suit Modifier position
+        if (card2) chars[1] = HIDE_CHAR; // Mask Card 2 position
+        if (suitModifier) chars[2] = HIDE_CHAR; // Mask Suit Modifier position
 
         return chars.join(''); // Return the modified string
     }
