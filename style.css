@@ -50,66 +50,59 @@ html, body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-/* Add/Modify these CSS rules in your <style> block or CSS file */
+/* Add/Modify these CSS rules */
 
-/* Display Area */
+/* Display Area (Parent) */
 .display {
     background-color: var(--display-bg);
-    /* Removed color here, applied to children */
     border-radius: var(--border-radius);
-    font-family: 'DS14ML', 'Courier New', Courier, monospace; /* Base font for children */
-    font-size: 2.4em; /* Base size */
+    font-family: 'DS14ML', 'Courier New', Courier, monospace;
+    font-size: 2.4em;
     font-weight: normal;
-    min-height: 60px;
-    /* Use padding to create space */
+    min-height: 96px;
     padding: 15px 20px;
     border: 1px solid #555;
-    position: relative; /* Crucial for positioning children */
-    text-align: center; /* Center inline/inline-block children */
-    line-height: 1.2; /* Consistent line height */
-    letter-spacing: 3px; /* Base letter spacing */
+    position: relative;
+    text-align: center;
+    line-height: 1.2;
+    letter-spacing: 3px;
     overflow: hidden;
-     display: flex; /* Use flex to center content vertically */
-     justify-content: center;
-     align-items: center;
-}
-
-/* Background Placeholder Layer */
-#display-placeholder {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex; /* Use flex to center perfectly */
+    display: flex;
     justify-content: center;
     align-items: center;
-    padding: inherit; /* Inherit parent padding for alignment */
-    font-family: inherit;
-    font-size: inherit;
-    letter-spacing: inherit;
-    line-height: inherit;
-    color: rgba(245, 245, 245, 0.25); /* Muted placeholder color - ADJUST OPACITY (0.0 to 1.0) */
-    z-index: 1; /* Behind the main text */
-    user-select: none; /* Can't select the placeholder */
-    white-space: pre; /* Preserve spaces */
+    white-space: pre; /* Important for preserving exact spacing/chars */
 }
 
-/* Foreground Active Text Layer */
+/* Style for the main container span (might not need much) */
 #main-display-text {
-    position: relative; /* Relative to allow z-index */
-    z-index: 2; /* On top of the placeholder */
-    color: var(--display-text); /* Bright active text color */
-    font-family: inherit;
-    font-size: inherit;
-    letter-spacing: inherit;
-    line-height: inherit;
-    background-color: transparent; /* Allows placeholder below to show through */
-    white-space: pre; /* Preserve spaces used for alignment */
-     /* Centering is handled by parent flexbox */
+     /* Ensures it behaves well within the flex container */
 }
 
-/* Hand Counter (adjust z-index) */
+/* Base style for ALL characters within spans (optional) */
+.display-char {
+    display: inline-block; /* Ensures spans behave predictably */
+    /* transition: color 0.1s ease-in-out; */ /* Optional: subtle transition */
+}
+
+/* Style for MUTED placeholder characters (~) */
+.display-char.muted {
+    color: rgba(245, 245, 245, 0.25); /* Muted color - ADJUST OPACITY */
+    /* You could even slightly change font-weight or size if desired */
+    /* font-weight: lighter; */
+}
+
+/* Style for ACTIVE characters (A, K, s, W, !, *, etc.) */
+.display-char.active {
+    color: var(--display-text); /* Bright active text color */
+}
+
+/* Style for SEPARATOR characters (., :) */
+.display-char.separator {
+    color: var(--display-text); /* Use active color */
+    opacity: 0.6; /* Make separators slightly less prominent - ADJUST */
+}
+
+/* Hand Counter CSS (Remains the same) */
 #hand-counter {
     position: absolute;
     top: 5px;
@@ -120,7 +113,7 @@ html, body {
     font-weight: normal;
     line-height: 1;
     letter-spacing: 1px;
-    z-index: 3; /* Highest layer */
+    z-index: 3;
 }
 
 /* Grid Container for Buttons */
