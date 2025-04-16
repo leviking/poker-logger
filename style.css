@@ -57,49 +57,98 @@ html, body {
     background-color: var(--display-bg);
     border-radius: var(--border-radius);
     font-family: 'DS14ML', 'Courier New', Courier, monospace;
-    font-size: 2.4em;
+    /* font-size: 2.4em; /* Base size now set on children */
     font-weight: normal;
-    min-height: 96px;
-    padding: 15px 20px;
+    min-height: 120px; /* Increased height for stats */
+    padding: 10px 20px; /* Adjust padding */
     border: 1px solid #555;
-    position: relative;
-    text-align: center;
+    position: relative; /* Crucial for positioning children */
+    /* text-align: center; /* Centering handled by flex */
     line-height: 1.2;
     letter-spacing: 3px;
     overflow: hidden;
+    display: flex; /* Use flexbox */
+    flex-direction: column; /* Stack items vertically */
+    justify-content: space-between; /* Space between stats and main display */
+    align-items: center; /* Center items horizontally */
+    gap: 10px; /* Optional gap between rows */
+}
+
+/* NEW: Stats Row Container */
+.stats-display {
     display: flex;
-    justify-content: center;
+    justify-content: space-around; /* Space out stat items */
     align-items: center;
-    white-space: pre; /* Important for preserving exact spacing/chars */
+    width: 100%; /* Take full width */
+    font-size: 0.5em; /* Smaller font for stats */
+    font-family: monospace, sans-serif; /* Use a clearer font for stats */
+    letter-spacing: 1px;
+    padding-bottom: 5px; /* Space below stats */
+    border-bottom: 1px solid #555; /* Optional separator line */
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
-/* Style for the main container span (might not need much) */
+/* NEW: Individual Stat Item (Label + Value) */
+.stat-item {
+    display: flex;
+    flex-direction: column; /* Stack label above value */
+    align-items: center;
+    text-align: center;
+}
+
+/* NEW: Stat Label Styling */
+.stat-label {
+    font-weight: bold;
+    font-size: 0.8em; /* Slightly smaller label */
+    color: #a0a0a0; /* Muted label color */
+    margin-bottom: 2px;
+}
+
+/* NEW: Stat Value Styling */
+.stat-value {
+    font-family: 'DS14ML', 'Courier New', Courier, monospace;
+    font-weight: bold;
+    font-size: 1.1em; /* Make value slightly larger */
+    min-width: 3ch; /* Ensure minimum width for alignment (e.g., 100%) */
+    display: inline-block;
+}
+
+/* NEW: Color coding for stat values */
+.fold-stat .stat-value {
+    color: rgb(221, 66, 105);
+}
+.win-stat .stat-value {
+    color: rgb(116, 177, 217);
+}
+.lose-stat .stat-value {
+    color: rgb(235, 89, 60);
+}
+
+/* Existing Main Display Text Area */
 #main-display-text {
-     /* Ensures it behaves well within the flex container */
+    font-size: 2.4em; /* Restore main font size */
+    font-family: 'DS14ML', 'Courier New', Courier, monospace; /* Ensure correct font */
+    letter-spacing: 3px; /* Restore letter spacing */
+    line-height: 1.2;
+    white-space: pre;
+    color: var(--display-text); /* Needed since parent doesn't set color */
+    width: 100%; /* Allow text align to work */
+    text-align: center;
 }
 
-/* Base style for ALL characters within spans (optional) */
+/* Existing Character Span Styles */
 .display-char {
-    display: inline-block; /* Ensures spans behave predictably */
-    /* transition: color 0.1s ease-in-out; */ /* Optional: subtle transition */
+    display: inline-block;
 }
-
-/* Style for MUTED placeholder characters (~) */
 .display-char.muted {
-    color: rgba(245, 245, 245, 0.25); /* Muted color - ADJUST OPACITY */
-    /* You could even slightly change font-weight or size if desired */
-    /* font-weight: lighter; */
+    color: rgba(245, 245, 245, 0.25);
 }
-
-/* Style for ACTIVE characters (A, K, s, W, !, *, etc.) */
 .display-char.active {
-    color: var(--display-text); /* Bright active text color */
+    color: var(--display-text); /* Use main display text color */
 }
-
-/* Style for SEPARATOR characters (., :) */
 .display-char.separator {
-    color: var(--display-text); /* Use active color */
-    opacity: 0.6; /* Make separators slightly less prominent - ADJUST */
+    color: var(--display-text);
+    opacity: 0.6;
 }
 
 /* Hand Counter CSS (Remains the same) */

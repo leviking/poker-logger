@@ -10,7 +10,22 @@
 
     <div class="poker-logger">
         <div class="display" id="hand-display">
-            <span id="main-display-text"></span>  <span id="hand-counter">0</span>
+            <div class="stats-display">
+                <span class="stat-item fold-stat">
+                    <span class="stat-label">FOLD</span>
+                    <span class="stat-value" id="fold-percent">000%</span>
+                </span>
+                <span class="stat-item win-stat">
+                    <span class="stat-label">WIN</span>
+                    <span class="stat-value" id="win-percent">000%</span>
+                </span>
+                <span class="stat-item lose-stat">
+                    <span class="stat-label">LOSE</span>
+                    <span class="stat-value" id="lose-percent">000%</span>
+                </span>
+            </div>
+            <span id="main-display-text"></span>
+            <span id="hand-counter">0</span>
         </div>
 
         <div class="button-grid main-inputs">
