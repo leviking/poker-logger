@@ -26,12 +26,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let winCount = 0;
     let loseCount = 0;
     let foldCount = 0;
+    // Hand history storage
+    let handHistory = [];
 
     // --- Constants ---
     const RANK_ORDER = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
     const PLACEHOLDER_STRING = '~.~.~.:~.~.~.~.';
     const HIDE_CHAR = '*';
     const STORAGE_KEY = 'pokerLoggerData';
+    const HISTORY_KEY = 'pokerHandHistory';
 
     // --- Helper Functions ---
 
@@ -62,6 +65,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 resetCounts();
             }
         }
+
+        // Load hand history
+        const savedHistory = localStorage.getItem(HISTORY_KEY);
+        if (savedHistory) {
+            try {
+                handHistory = JSON.parse(savedHistory);
+            } catch (e) {
+                console.error('Error loading hand history:', e);
+                handHistory = [];
+            }
+        }
+        
         updateDisplay();
     }
 
@@ -79,6 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
             isHidden
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        
+        // Save hand history
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(handHistory));
     }
 
     // Reset all counters but keep current hand state
@@ -89,6 +107,138 @@ document.addEventListener('DOMContentLoaded', () => {
         handCount = 0;
         saveData();
         updateDisplay();
+    }
+
+    // Clear hand history
+    function resetHistory() {
+        handHistory = [];
+        saveData();
+    }
+
+    // Normalize hand (make sure higher card is first)
+    function normalizeHand(firstCard, secondCard) {
+        // If no cards, return null values
+        if (!firstCard || !secondCard) {
+            return { first: firstCard, second: secondCard };
+        }
+        
+        // Get indices to determine rank
+        const firstIndex = RANK_ORDER.indexOf(firstCard);
+        const secondIndex = RANK_ORDER.indexOf(secondCard);
+        
+        // Lower index means higher card (A is index 0)
+        if (firstIndex <= secondIndex) {
+            // Cards are already in correct order
+            return { first: firstCard, second: secondCard };
+        } else {
+            // Swap cards
+            return { first: secondCard, second: firstCard };
+        }
+    }
+
+    // Format hand as readable string (e.g., "AKs", "JTo", "77o")
+    function formatHandString(firstCard, secondCard, modifier) {
+        if (!firstCard || !secondCard) return '';
+        
+        let suitChar = '';
+        if (firstCard === secondCard) {
+            // Pairs always have 'o' modifier
+            suitChar = 'o';
+        } else if (modifier) {
+            suitChar = modifier;
+        }
+        
+        return `${firstCard}${secondCard}${suitChar}`;
+    }
+
+    // Add hand to history
+    function recordHand(handString, outcomeValue) {
+        if (!handString || !outcomeValue) return;
+        
+        // Format outcome (remove tilde from Win~)
+        const cleanOutcome = outcomeValue.replace('~', '');
+        
+        // Add to history array with timestamp
+        const timestamp = new Date().toISOString();
+        handHistory.push({
+            hand: handString,
+            outcome: cleanOutcome,
+            timestamp: timestamp,
+            // Add formatted date for readability in exports
+            date: new Date().toLocaleDateString(),
+            time: new Date().toLocaleTimeString()
+        });
+        
+        // Save to localStorage
+        saveData();
+    }
+
+    // Export hand history as CSV
+    function exportHandHistory() {
+        if (handHistory.length === 0) {
+            alert('No hand history to export.');
+            return;
+        }
+        
+        // Create CSV content
+        let csvContent = 'hand,outcome,timestamp,date,time\n';
+        
+        handHistory.forEach(entry => {
+            csvContent += `${entry.hand},${entry.outcome},${entry.timestamp},${entry.date},${entry.time}\n`;
+        });
+        
+        // Create download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `poker_hands_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    // Copy hand history to clipboard
+    function copyHistoryToClipboard() {
+        if (handHistory.length === 0) {
+            alert('No hand history to copy.');
+            return;
+        }
+        
+        // Create CSV content
+        let csvContent = 'hand,outcome,timestamp,date,time\n';
+        
+        handHistory.forEach(entry => {
+            csvContent += `${entry.hand},${entry.outcome},${entry.timestamp},${entry.date},${entry.time}\n`;
+        });
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(csvContent)
+            .then(() => {
+                // Show success feedback
+                const originalText = hideButton.textContent;
+                
+                hideButton.textContent = 'Copied!';
+                hideButton.classList.add('copied');
+                
+                // Vibrate if available
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(100);
+                }
+                
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    hideButton.textContent = originalText;
+                    hideButton.classList.remove('copied');
+                }, 2000);
+            })
+            .catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy data. Export option not available.');
+            });
     }
 
     function maskHandDisplay(displayStr, shouldMask) {
@@ -176,6 +326,12 @@ document.addEventListener('DOMContentLoaded', () => {
             suitModifier = null;
         } else if (!card2) {
             card2 = rank;
+            
+            // Apply hand normalization - always put higher card first
+            const normalizedHand = normalizeHand(card1, card2);
+            card1 = normalizedHand.first;
+            card2 = normalizedHand.second;
+            
             suitModifier = (card1 === card2) ? 'o' : null;
         } else {
             if (outcome) { // Start fresh if previous hand was logged
@@ -236,6 +392,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
              if (newlyLogged) {
                 handCount++; // Increment total ONLY if it's a new outcome for this hand
+                
+                // Record the hand in history
+                const handString = formatHandString(card1, card2, suitModifier);
+                recordHand(handString, currentOutcomeValue);
              }
 
              // Ensure counts don't go negative (shouldn't happen with this logic, but safe)
@@ -267,33 +427,120 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleHideClick() {
+	console.log('clicked hide')
+        // Check if it's a long press (export to clipboard)
+        if (hideButton.dataset.longPress === 'true') {
+	    console.log('long pressed hide')
+            // Copy history to clipboard
+            copyHistoryToClipboard();
+            // Reset long press flag
+            hideButton.dataset.longPress = 'false';
+            return;
+        }
+            copyHistoryToClipboard();
+        
+        // Regular click - toggle hide/show
         isHidden = !isHidden;
         hideButton.textContent = isHidden ? 'Show' : 'Hide';
         updateDisplay();
+    }
+
+    // Create export function that can be triggered via keyboard
+    function showExportPrompt() {
+        if (handHistory.length === 0) {
+            alert('No hand history to export.');
+            return;
+        }
+        
+        if (confirm('Export hand history as CSV?')) {
+            exportHandHistory();
+        }
     }
 
     // --- Long Press Detection ---
     let longPressTimer;
     
     function startLongPress(e) {
-        // Only proceed for clear button
-        if (!e.target.classList.contains('clear')) return;
-        
-        longPressTimer = setTimeout(() => {
-            e.target.dataset.longPress = 'true';
-            e.target.classList.add('long-press');
-            
-            // Provide visual/haptic feedback that long press was detected
-            if ('vibrate' in navigator) {
-                navigator.vibrate(100);
-            }
-        }, 1000); // 1 second for long press
+        // Check if it's the clear button or hide button
+        if (e.target.classList.contains('clear')) {
+            longPressTimer = setTimeout(() => {
+                e.target.dataset.longPress = 'true';
+                e.target.classList.add('long-press');
+                
+                // Provide visual/haptic feedback that long press was detected
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(100);
+                }
+            }, 1000); // 1 second for long press
+        } else if (!e.target.classList.contains('clear') && e.target.classList.contains('btn-action')) {
+            // This is the hide/show button
+            longPressTimer = setTimeout(() => {
+                e.target.dataset.longPress = 'true';
+                e.target.classList.add('long-press');
+                
+                // Provide visual/haptic feedback
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(100);
+                }
+            }, 1000); // 1 second for long press
+        }
     }
     
     function endLongPress(e) {
         clearTimeout(longPressTimer);
         e.target.classList.remove('long-press');
+        e.target.dataset.longPress = 'false';
     }
+
+    // --- Keyboard Shortcuts ---
+    document.addEventListener('keydown', (e) => {
+        // Only process if no input elements are focused
+        if (document.activeElement.tagName === 'INPUT' || 
+            document.activeElement.tagName === 'TEXTAREA') {
+            return;
+        }
+        
+        const key = e.key.toUpperCase();
+        
+        // Card ranks
+        if ('AKQJT98765432'.includes(key)) {
+            // Find the corresponding button and simulate a click
+            const buttonText = key === 'T' ? 'T' : key; // Handle 10 as T
+            const matchingButton = Array.from(cardButtons).find(btn => 
+                btn.textContent.trim().toUpperCase() === buttonText);
+            
+            if (matchingButton) {
+                handleCardClick(buttonText);
+            }
+        }
+        
+        // Outcome keys
+        if (key === 'W') handleOutcomeClick('Win');
+        if (key === 'L') handleOutcomeClick('Lose');
+        if (key === 'F') handleOutcomeClick('Fold');
+        
+        // Other controls
+        if (key === 'H') handleHideClick();
+        if (key === 'C') handleClearClick();
+        
+        // Modifiers
+        if (key === 'S') handleModifierClick('s');
+        if (key === 'O') handleModifierClick('o');
+        
+        // Export data - Ctrl+E
+        if (key === 'E' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            showExportPrompt();
+        }
+        
+        // Reset history - Ctrl+Shift+R
+        if (key === 'R' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+            e.preventDefault();
+            if (confirm('Reset ALL hand history? This cannot be undone.')) {
+                resetHistory();
+            }
+        }
+    });
 
     // --- Attach Event Listeners ---
     cardButtons.forEach(button => {
@@ -318,6 +565,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (hideButton) {
         hideButton.addEventListener('click', handleHideClick);
+        hideButton.addEventListener('touchstart', startLongPress);
+        hideButton.addEventListener('mousedown', startLongPress);
+        hideButton.addEventListener('touchend', endLongPress);
+        hideButton.addEventListener('mouseup', endLongPress);
+        hideButton.addEventListener('mouseleave', endLongPress);
     }
 
     // --- Add Swipe to Clear Gesture ---
@@ -342,6 +594,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Math.abs(xDiff) > Math.abs(yDiff) && xDiff < -50) {
             // Swipe right detected - clear current hand
             handleClearClick();
+        }
+        
+        // Vertical swipe down - export data
+        if (Math.abs(yDiff) > Math.abs(xDiff) && yDiff < -100) {
+            exportHandHistory();
         }
         
         xDown = null;

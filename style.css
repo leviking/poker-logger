@@ -251,14 +251,23 @@ body.pwa-mode {
      border-color: #cc5800;
 }
 
-/* Long press style for clear button */
-.btn-action.clear.long-press {
-    background-color: #D32F2F; /* Red for reset confirmation */
-    color: white;
+/* Long press styles for action buttons */
+.btn-action.long-press {
+    background-color: #1565C0; /* Blue color for clipboard copy mode */
     animation: pulse 0.5s infinite alternate;
 }
 
+.btn-action.copied {
+    background-color: #1565C0;
+    animation: fadeIn 0.3s;
+}
+
 @keyframes pulse {
+    from { opacity: 0.8; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeIn {
     from { opacity: 0.8; }
     to { opacity: 1; }
 }
