@@ -177,7 +177,6 @@ body.pwa-mode {
     line-height: 1;
     letter-spacing: 1px;
     z-index: 3;
-    cursor: pointer;
 }
 
 /* Grid Container for Buttons */
@@ -251,90 +250,68 @@ body.pwa-mode {
      color: var(--accent-text);
      border-color: #cc5800;
 }
-
-/* History View Overlay */
-.history-view {
-    display: none; /* Hidden by default */
-    position: fixed;
-    inset: 0; /* Covers the whole screen (top, right, bottom, left = 0) */
-    background-color: rgba(0, 0, 0, 0.85); /* Dark semi-transparent overlay */
-    z-index: 1000; /* Ensure it's on top */
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-    animation: historyFadeIn 0.3s ease-out; /* Add fade-in */
+.history-page-container {
+    max-width: 600px; /* Allow wider view for table */
+    margin: 0 auto;
+    padding: max(15px, var(--safe-area-inset-top)) 15px max(15px, var(--safe-area-inset-bottom));
+    font-family: monospace, sans-serif; /* Use a more readable font for history */
 }
 
-.history-view.visible {
-    display: flex; /* Show it */
-}
-
-@keyframes historyFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* Content Box within the Overlay */
-.history-content {
-    background-color: var(--bg-color); /* Use main background */
-    padding: 30px 25px 25px 25px; /* More padding */
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    position: relative; /* For positioning the close button */
+.history-header {
     display: flex;
-    flex-direction: column;
-    gap: 15px; /* Space between buttons */
-    max-width: 90%;
-    width: 350px; /* Fixed width, but allow max-width */
-    font-family: sans-serif; /* Use a standard font here */
-    color: var(--text-color);
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ccc;
 }
 
-.history-content h2 {
-    text-align: center;
-    margin-bottom: 10px;
+.history-header h1 {
     color: #333;
-    font-weight: 600;
+    font-size: 1.8em;
+    margin: 0;
 }
 
-/* Close Button */
-.close-history-btn {
-    position: absolute;
-    top: 5px;
-    right: 8px;
-    background: none;
-    border: none;
-    font-size: 24px;
-    font-weight: bold;
-    color: #888;
-    cursor: pointer;
-    padding: 5px;
-    line-height: 1;
-}
-.close-history-btn:hover {
-    color: #333;
+.back-button {
+    /* Inherits .btn styles */
+    font-size: .75em;
+    text-decoration: none; /* For <a> tag */
+    min-height:25px;
+    min-width: 100px;
 }
 
-/* Action Buttons within the History View */
+.history-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Responsive grid */
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+/* Style action buttons on history page */
 .history-action-btn {
-    width: 100%; /* Make buttons full width of container */
-    padding: 12px 15px; /* Comfortable padding */
-    font-size: 1em; /* Standard font size */
-    background-color: var(--button-bg); /* Use default button style */
-    color: var(--button-text);
-    border: 1px solid #999;
-    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
-    text-align: center; /* Ensure text is centered */
+    /* Inherits .btn styles */
+    padding: 10px;
+    min-height: 25px;
+    background-color: var(--button-card-bg); /* Dark background */
+    color: var(--button-card-text);      /* Light text color */
+    border-color: #444;                  /* Darker border */
+
 }
 
-/* Specific styling for potentially destructive actions */
-#reset-stats-btn,
-#reset-history-btn {
-    background-color: #e65353; /* Warning color */
-    color: white;
-    border-color: #c0392b;
+/* Destructive action buttons */
+.history-action-btn.reset-stats,
+.history-action-btn.reset-history {
+    background-color: var(--accent-color);
+    color: var(--accent-text);
+    border-color: #cc5800;
+
+}
+.history-action-btn.reset-stats:hover,
+.history-action-btn.reset-history:hover {
+    background-color: #d94444;
 }
 
+/* Feedback for copy button */
 #copy-history-btn.copied-feedback {
     background-color: #1565C0; /* Blue feedback color */
     color: white;
@@ -342,13 +319,53 @@ body.pwa-mode {
     transition: background-color 0.1s ease-out;
 }
 
-/* Override aspect ratio for these buttons */
-.history-action-btn {
-    aspect-ratio: auto; /* Reset aspect ratio */
-    min-height: auto; /* Reset min height */
-    justify-content: center; /* Center text again */
-    align-items: center;
+
+/* History Table */
+.history-table-container {
+    overflow-x: auto; /* Allow horizontal scroll on small screens */
+    background-color: #fff;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 5px; /* Add some padding around the table */
 }
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse; /* Clean look */
+    font-size: 0.9em;
+}
+
+.history-table thead {
+    background-color: #f0f0f0; /* Light grey header */
+    color: #333;
+    border-bottom: 2px solid #ccc;
+}
+
+.history-table th,
+.history-table td {
+    padding: 10px 12px; /* Cell padding */
+    text-align: left;
+    border-bottom: 1px solid #eee; /* Light lines between rows */
+}
+
+.history-table th {
+    font-weight: 600; /* Bolder header text */
+}
+
+.history-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9; /* Subtle striping */
+}
+
+.history-table tbody tr:hover {
+    background-color: #e9e9e9; /* Hover effect */
+}
+
+/* Align outcome/time if desired */
+.history-table td:nth-child(2), /* Outcome column */
+.history-table td:nth-child(4) { /* Time column */
+   /* text-align: center; */ /* Optional */
+}
+
 /* Specific Outcome Styling (Win/Lose/Fold) */
 .btn-outcome.win {
     background-color: rgb(116, 177, 217); 

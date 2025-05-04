@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Hand History - Poker Logger</title>
+    <meta name="theme-color" content="#282828">
+    <link rel="stylesheet" href="style.css">
+    </head>
+<body>
+    <div class="history-page-container">
+        <header class="history-header">
+            <h1>Hand History</h1>
+            <a href="index.html" class="btn back-button">Back</a>
+        </header>
+
+        <div class="history-actions">
+            <button class="btn btn-action history-action-btn" id="copy-history-btn">Copy History</button>
+            <button class="btn btn-action history-action-btn" id="export-history-btn">Export CSV</button>
+            <button class="btn btn-action history-action-btn reset-stats" id="reset-stats-btn">Reset Stats</button>
+            <button class="btn btn-action history-action-btn reset-history" id="reset-history-btn">Reset History</button>
+        </div>
+
+        <div class="history-table-container">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Hand</th>
+                        <th>Outcome</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="history-table-body">
+                    </tbody>
+            </table>
+            <p id="no-history-message" style="display: none; text-align: center; padding: 20px; color: #555;">No hand history recorded yet.</p>
+        </div>
+
+    </div> <script src="history.js" defer></script>
+</body>
+</html>

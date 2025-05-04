@@ -14,14 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const outcomeButtons = document.querySelectorAll('.btn-outcome');
     const clearButton = document.querySelector('.btn-action.clear');
     const hideButton = document.querySelector('.btn-action:not(.clear)');
-    // NEW: History View Elements
-    const historyView = document.getElementById('history-view');
-    const closeHistoryViewBtn = document.getElementById('close-history-view-btn');
-    const copyHistoryBtn = document.getElementById('copy-history-btn');
-    const exportHistoryBtn = document.getElementById('export-history-btn');
-    const resetStatsBtn = document.getElementById('reset-stats-btn');
-    const resetHistoryBtn = document.getElementById('reset-history-btn');
-
 
     // --- State Variables ---
     let card1 = null;
@@ -177,77 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveData();
     }
 
-    // Export hand history as CSV
-    function exportHandHistory() {
-        if (handHistory.length === 0) {
-            alert('No hand history to export.');
-            return;
-        }
-        
-        let csvContent = 'hand,outcome,timestamp,date,time\n';
-        
-        handHistory.forEach(entry => {
-            // Handle potential commas in future data by quoting fields if needed
-            const hand = entry.hand.includes(',') ? `"${entry.hand}"` : entry.hand;
-            const outcome = entry.outcome.includes(',') ? `"${entry.outcome}"` : entry.outcome;
-            csvContent += `${hand},${outcome},${entry.timestamp},${entry.date},${entry.time}\n`;
-        });
-        
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', `poker_hands_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.display = 'none';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url); // Clean up blob URL
-    }
-    
-    // Copy hand history to clipboard
-    function copyHistoryToClipboard() {
-        if (handHistory.length === 0) {
-            alert('No hand history to copy.');
-            return;
-        }
-        
-        let csvContent = 'hand,outcome,timestamp,date,time\n';
-        
-        handHistory.forEach(entry => {
-            const hand = entry.hand.includes(',') ? `"${entry.hand}"` : entry.hand;
-            const outcome = entry.outcome.includes(',') ? `"${entry.outcome}"` : entry.outcome;
-            csvContent += `${hand},${outcome},${entry.timestamp},${entry.date},${entry.time}\n`;
-        });
-        
-        // Copy to clipboard
-        navigator.clipboard.writeText(csvContent)
-            .then(() => {
-                // Show success feedback ON THE HISTORY VIEW BUTTON
-                const originalText = copyHistoryBtn.textContent;
-                
-                copyHistoryBtn.textContent = 'Copied!';
-                copyHistoryBtn.classList.add('copied-feedback'); // Use a class for styling
-                
-                // Vibrate if available
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(100);
-                }
-                
-                // Reset button after 2 seconds
-                setTimeout(() => {
-                    copyHistoryBtn.textContent = originalText;
-                    copyHistoryBtn.classList.remove('copied-feedback');
-                }, 2000);
-            })
-            .catch(err => {
-                console.error('Failed to copy: ', err);
-                alert('Failed to copy data. Try the Export CSV option.');
-            });
-    }
-
     function maskHandDisplay(displayStr, shouldMask) {
         if (!shouldMask) return displayStr;
         let chars = displayStr.split('');
@@ -351,8 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
             losePercentElement.textContent = `000%`;
         }
 
-        // Save state after every update (consider debouncing if performance becomes an issue)
-        saveData();
     }
 
     // --- Event Handler Functions ---
@@ -555,23 +474,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Create export function that can be triggered via keyboard or button
-    function showExportPrompt() { // Renamed from original script
-        if (handHistory.length === 0) {
-            alert('No hand history to export.');
-            return;
-        }
-        
-        // Changed from confirm to direct export since it's behind a specific button now
-        exportHandHistory();
-        closeHistoryView(); // Optional: close view after export
-    }
-
-
-    // --- REMOVED Long Press Detection ---
-    // let longPressTimer;
-    // function startLongPress(e) { ... }
-    // function endLongPress(e) { ... }
 
     // --- Keyboard Shortcuts ---
     document.addEventListener('keydown', (e) => {
@@ -609,23 +511,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (key === 'S') handleModifierClick('s');
         if (key === 'O') handleModifierClick('o'); // 'O' for Offsuit
         
-        // Export data - Ctrl+E (Keep this as an alternative)
-        if (key === 'E' && (e.ctrlKey || e.metaKey)) {
-            e.preventDefault();
-            showExportPrompt(); // Use the same function as the button
-        }
-        
-        // Reset history - Ctrl+Shift+R (Keep this, but maybe remove if button is enough)
-        if (key === 'R' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
-            e.preventDefault();
-            // Directly call the confirmation and reset logic
-            handleResetHistoryClick(); // Reuse the handler for the button click
-        }
-
-        // Close History View with Escape key
-        if (e.key === 'Escape' && historyView && historyView.classList.contains('visible')) {
-            closeHistoryView();
-       }
     });
 
     // --- Attach Event Listeners ---
@@ -650,32 +535,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- NEW Event Listeners for History View ---
     if (counterElement) {
-        counterElement.addEventListener('click', openHistoryView);
-    }
-    if (closeHistoryViewBtn) {
-        closeHistoryViewBtn.addEventListener('click', closeHistoryView);
-    }
-    if (copyHistoryBtn) {
-        copyHistoryBtn.addEventListener('click', copyHistoryToClipboard);
-    }
-     if (exportHistoryBtn) {
-         exportHistoryBtn.addEventListener('click', showExportPrompt); // Use same function as shortcut
-     }
-    if (resetStatsBtn) {
-        resetStatsBtn.addEventListener('click', handleResetStatsClick);
-    }
-    if (resetHistoryBtn) {
-        resetHistoryBtn.addEventListener('click', handleResetHistoryClick);
-    }
-    // Close history view if clicking the background overlay
-    if (historyView) {
-        historyView.addEventListener('click', (e) => {
-            if (e.target === historyView) { // Check if the click was directly on the overlay
-                closeHistoryView();
-            }
+        counterElement.addEventListener('click', () => {
+            // Navigate to the history page
+            window.location.href = 'history.html';
         });
     }
-
 
     // --- REMOVED Swipe Gestures (or keep if desired, but they don't conflict) ---
     // let xDown = null; ... etc.
