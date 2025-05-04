@@ -14,6 +14,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const outcomeButtons = document.querySelectorAll('.btn-outcome');
     const clearButton = document.querySelector('.btn-action.clear');
     const hideButton = document.querySelector('.btn-action:not(.clear)');
+    // NEW: History View Elements
+    const historyView = document.getElementById('history-view');
+    const closeHistoryViewBtn = document.getElementById('close-history-view-btn');
+    const copyHistoryBtn = document.getElementById('copy-history-btn');
+    const exportHistoryBtn = document.getElementById('export-history-btn');
+    const resetStatsBtn = document.getElementById('reset-stats-btn');
+    const resetHistoryBtn = document.getElementById('reset-history-btn');
+
 
     // --- State Variables ---
     let card1 = null;
@@ -62,7 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) {
                 console.error('Error loading saved data:', e);
                 // Reset to defaults if error
-                resetCounts();
+                resetCounts(); // Keep this behavior on load error
+                resetHistory(); // Also clear history on load error
             }
         }
 
@@ -113,25 +122,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetHistory() {
         handHistory = [];
         saveData();
+        // Optionally give feedback or close the modal here if called from button
     }
 
     // Normalize hand (make sure higher card is first)
     function normalizeHand(firstCard, secondCard) {
-        // If no cards, return null values
         if (!firstCard || !secondCard) {
             return { first: firstCard, second: secondCard };
         }
         
-        // Get indices to determine rank
         const firstIndex = RANK_ORDER.indexOf(firstCard);
         const secondIndex = RANK_ORDER.indexOf(secondCard);
         
-        // Lower index means higher card (A is index 0)
         if (firstIndex <= secondIndex) {
-            // Cards are already in correct order
             return { first: firstCard, second: secondCard };
         } else {
-            // Swap cards
             return { first: secondCard, second: firstCard };
         }
     }
@@ -142,12 +147,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let suitChar = '';
         if (firstCard === secondCard) {
-            // Pairs always have 'o' modifier
-            suitChar = 'o';
+            // Default 'o' for pairs unless explicitly overridden by user (handled elsewhere)
+            suitChar = modifier || 'o'; // Keep modifier if explicitly set, else 'o'
         } else if (modifier) {
             suitChar = modifier;
         }
-        
+        // If no modifier provided for non-pair, maybe default to 'o'? Or leave blank?
+        // Current logic: requires modifier click for non-pairs. If that's okay, keep this.
+        // If you want non-pairs to default to 'o', add: else { suitChar = 'o'; }
+
         return `${firstCard}${secondCard}${suitChar}`;
     }
 
@@ -155,21 +163,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function recordHand(handString, outcomeValue) {
         if (!handString || !outcomeValue) return;
         
-        // Format outcome (remove tilde from Win~)
         const cleanOutcome = outcomeValue.replace('~', '');
         
-        // Add to history array with timestamp
         const timestamp = new Date().toISOString();
         handHistory.push({
             hand: handString,
             outcome: cleanOutcome,
             timestamp: timestamp,
-            // Add formatted date for readability in exports
-            date: new Date().toLocaleDateString(),
-            time: new Date().toLocaleTimeString()
+            date: new Date().toLocaleDateString(), // Consider locale options if needed
+            time: new Date().toLocaleTimeString() // Consider locale options if needed
         });
         
-        // Save to localStorage
         saveData();
     }
 
@@ -180,14 +184,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Create CSV content
         let csvContent = 'hand,outcome,timestamp,date,time\n';
         
         handHistory.forEach(entry => {
-            csvContent += `${entry.hand},${entry.outcome},${entry.timestamp},${entry.date},${entry.time}\n`;
+            // Handle potential commas in future data by quoting fields if needed
+            const hand = entry.hand.includes(',') ? `"${entry.hand}"` : entry.hand;
+            const outcome = entry.outcome.includes(',') ? `"${entry.outcome}"` : entry.outcome;
+            csvContent += `${hand},${outcome},${entry.timestamp},${entry.date},${entry.time}\n`;
         });
         
-        // Create download link
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -199,6 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url); // Clean up blob URL
     }
     
     // Copy hand history to clipboard
@@ -208,21 +214,22 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Create CSV content
         let csvContent = 'hand,outcome,timestamp,date,time\n';
         
         handHistory.forEach(entry => {
-            csvContent += `${entry.hand},${entry.outcome},${entry.timestamp},${entry.date},${entry.time}\n`;
+            const hand = entry.hand.includes(',') ? `"${entry.hand}"` : entry.hand;
+            const outcome = entry.outcome.includes(',') ? `"${entry.outcome}"` : entry.outcome;
+            csvContent += `${hand},${outcome},${entry.timestamp},${entry.date},${entry.time}\n`;
         });
         
         // Copy to clipboard
         navigator.clipboard.writeText(csvContent)
             .then(() => {
-                // Show success feedback
-                const originalText = hideButton.textContent;
+                // Show success feedback ON THE HISTORY VIEW BUTTON
+                const originalText = copyHistoryBtn.textContent;
                 
-                hideButton.textContent = 'Copied!';
-                hideButton.classList.add('copied');
+                copyHistoryBtn.textContent = 'Copied!';
+                copyHistoryBtn.classList.add('copied-feedback'); // Use a class for styling
                 
                 // Vibrate if available
                 if ('vibrate' in navigator) {
@@ -231,37 +238,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Reset button after 2 seconds
                 setTimeout(() => {
-                    hideButton.textContent = originalText;
-                    hideButton.classList.remove('copied');
+                    copyHistoryBtn.textContent = originalText;
+                    copyHistoryBtn.classList.remove('copied-feedback');
                 }, 2000);
             })
             .catch(err => {
                 console.error('Failed to copy: ', err);
-                alert('Failed to copy data. Export option not available.');
+                alert('Failed to copy data. Try the Export CSV option.');
             });
     }
 
     function maskHandDisplay(displayStr, shouldMask) {
         if (!shouldMask) return displayStr;
         let chars = displayStr.split('');
+        // Mask logic remains the same
         if (card1) chars[0] = HIDE_CHAR;
         if (card2) chars[2] = HIDE_CHAR;
-        if (suitModifier) chars[4] = HIDE_CHAR;
+        if (suitModifier) chars[4] = HIDE_CHAR; // Only mask modifier if not a pair
+        // Keep outcome visible even when hidden
         return chars.join('');
     }
 
     function calculateRawDisplayString() {
         let chars = PLACEHOLDER_STRING.split('');
-        if (card1) chars[0] = card1;
-        if (card2) chars[2] = card2;
-        if (suitModifier) chars[4] = suitModifier;
+        const normalized = normalizeHand(card1, card2); // Ensure consistency
+        const displayCard1 = normalized.first;
+        const displayCard2 = normalized.second;
+        let displayModifier = suitModifier;
+
+        if (displayCard1) chars[0] = displayCard1;
+        if (displayCard2) chars[2] = displayCard2;
+
+        // Automatically set modifier display for pairs, but respect explicit 's'/'o' if set
+        if (displayCard1 && displayCard2) {
+            if (displayCard1 === displayCard2) {
+                 // For pairs, display 'o' unless user explicitly set 's' somehow (edge case)
+                 chars[4] = (suitModifier === 's') ? 's' : 'o';
+            } else if (displayModifier) {
+                 chars[4] = displayModifier;
+            }
+         }
+
+
         let outcomeStr = outcome || '';
-        if (outcomeStr.length === 4) {
+        // Ensure outcome display logic works if outcome changes format later
+        if (outcomeStr.length >= 4) {
             chars[7] = outcomeStr[0];
             chars[9] = outcomeStr[1];
             chars[11] = outcomeStr[2];
             chars[13] = outcomeStr[3];
+        } else if (outcomeStr) {
+            // Basic fallback if outcome string is shorter (e.g., display first chars)
+            for (let i = 0; i < outcomeStr.length && i < 4; i++) {
+                chars[7 + i * 2] = outcomeStr[i];
+            }
         }
+
         return chars.join('');
     }
 
@@ -269,16 +301,23 @@ document.addEventListener('DOMContentLoaded', () => {
         let htmlString = '';
         for (let i = 0; i < str.length; i++) {
             const char = str[i];
-            let className = 'active';
+            let className = 'active'; // Default to active
             if (char === '~') className = 'muted';
             else if (char === '.' || char === ':') className = 'separator';
-            else if (char === ' ') className = 'muted';
+            // Check for placeholder characters explicitly if needed, but '~' covers most
+            // else if (char === ' ') className = 'muted'; // If spaces are used as placeholders
+
+            // Ensure '*' from masking is styled like active characters
+            if (char === HIDE_CHAR) className = 'active';
+
             htmlString += `<span class="display-char ${className}">${char}</span>`;
         }
         return htmlString;
     }
 
+
     function padNumber(num) {
+        // Pad with leading zeros to ensure 3 digits
         return String(num).padStart(3, '0');
     }
 
@@ -294,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mainDisplayTextElement.innerHTML = styledHtml;
 
         // 5. Update overall hand counter
-        counterElement.textContent = handCount;
+        counterElement.textContent = handCount; // Keep updating the number
 
         // Calculate and Update Stats
         if (handCount > 0) {
@@ -312,113 +351,159 @@ document.addEventListener('DOMContentLoaded', () => {
             losePercentElement.textContent = `000%`;
         }
 
-        // Save state after every update
+        // Save state after every update (consider debouncing if performance becomes an issue)
         saveData();
     }
 
     // --- Event Handler Functions ---
 
     function handleCardClick(rank) {
-        let handWasComplete = (card1 && card2);
+        let previousOutcome = outcome; // Store previous outcome before potential reset
 
         if (!card1) {
             card1 = rank;
-            suitModifier = null;
+            suitModifier = null; // Reset modifier when first card is selected
+            outcome = null; // Reset outcome when starting a new hand selection
         } else if (!card2) {
             card2 = rank;
-            
-            // Apply hand normalization - always put higher card first
+            // Normalize hand after second card is selected
             const normalizedHand = normalizeHand(card1, card2);
             card1 = normalizedHand.first;
             card2 = normalizedHand.second;
-            
+            // Default modifier: 'o' for pairs, null for non-pairs (requires modifier click)
             suitModifier = (card1 === card2) ? 'o' : null;
+            outcome = null; // Reset outcome when second card is selected
         } else {
-            if (outcome) { // Start fresh if previous hand was logged
-                card1 = rank;
-                card2 = null;
-                suitModifier = null;
-                outcome = null; // Also clear outcome when starting fresh
-            } else { // If previous hand wasn't logged, replace first card
-                card1 = rank;
-                card2 = null;
-                suitModifier = null;
-            }
+            // If hand is complete (card1, card2, maybe modifier, maybe outcome set)
+            // Start a new hand
+            card1 = rank;
+            card2 = null;
+            suitModifier = null;
+            outcome = null; // Clear outcome when starting a new hand
         }
 
-        let handIsNowComplete = (card1 && card2);
-        if (outcome && ((handIsNowComplete && !handWasComplete) || (!handIsNowComplete && handWasComplete))) {
-             outcome = null;
-        }
+        // If an outcome *was* set before this click reset it, we might need to adjust counts
+        // This scenario happens if user logged Win/Lose/Fold, then clicked a card rank again.
+        // The current logic correctly resets `outcome` to null above. The counts were already
+        // incremented when the outcome was first clicked. Starting a new hand doesn't require
+        // decrementing counts here. The `handleOutcomeClick` logic handles adjustments if
+        // the user *changes* an existing outcome *before* clicking a new card rank.
 
         updateDisplay();
     }
 
     function handleModifierClick(type) {
+        // Allow setting modifier only if both cards are selected AND they are not a pair
         if (card1 && card2 && card1 !== card2) {
             suitModifier = type;
+            // If an outcome was already selected, changing the modifier implies starting a new hand/entry logic
+            // Decide if changing modifier should clear the outcome or not.
+            // Current: Let's clear outcome if modifier is changed AFTER outcome was set.
+             if (outcome) {
+                 // This state is tricky. User logged "AKo Win", then clicks "Suited".
+                 // Does it become "AKs Win" (adjusting history?) or "AKs" (clearing outcome)?
+                 // Simpler: Treat modifier change after outcome as starting fresh conceptually for that hand detail.
+                 // We won't adjust past counts, but clear the current outcome display.
+                 // The *next* outcome click will log a new hand "AKs [outcome]".
+                 // Let's just update the modifier and display for now. The user needs to click outcome again.
+                 // outcome = null; // Optional: Uncomment to force re-selection of outcome
+             }
             updateDisplay();
+        } else if (card1 && card2 && card1 === card2) {
+            // Optional: Vibrate or give feedback that modifiers don't apply to pairs?
+             if ('vibrate' in navigator) { navigator.vibrate(50); }
         }
     }
+
 
     function handleOutcomeClick(selectedOutcomeText) {
-        if (card1 && card2) {
-            let currentOutcomeValue = null;
-            let newlyLogged = false; // Flag to track if this click logs a new outcome
+        // Require a complete hand (both cards selected) to log an outcome
+        // Also require a modifier ('s' or 'o') if the hand is not a pair
+        const isPair = card1 === card2;
+        const requiresModifier = !isPair;
+        const modifierSet = suitModifier !== null;
 
-            // Determine outcome value and check if it's different from current
-            if (selectedOutcomeText.startsWith('Win') && outcome !== 'Win~') {
-                currentOutcomeValue = 'Win~';
-                if (!outcome) newlyLogged = true; // Only count if no previous outcome
-                 if (outcome === 'Lose') loseCount--; // Adjust counts if switching outcome
-                 if (outcome === 'Fold') foldCount--;
-                 winCount++;
-            } else if (selectedOutcomeText.startsWith('Lose') && outcome !== 'Lose') {
-                currentOutcomeValue = 'Lose';
-                 if (!outcome) newlyLogged = true;
-                 if (outcome === 'Win~') winCount--;
-                 if (outcome === 'Fold') foldCount--;
-                 loseCount++;
-            } else if (selectedOutcomeText.startsWith('Fold') && outcome !== 'Fold') {
-                currentOutcomeValue = 'Fold';
-                 if (!outcome) newlyLogged = true;
-                 if (outcome === 'Win~') winCount--;
-                 if (outcome === 'Lose') loseCount--;
-                 foldCount++;
-            } else {
-                 // If clicking the same outcome again, do nothing to counts
-                 currentOutcomeValue = outcome;
+        if (card1 && card2 && (isPair || (requiresModifier && modifierSet))) {
+            let newOutcomeValue = null;
+            let previousOutcomeValue = outcome; // Store the current outcome before changing
+            let adjustment = { win: 0, lose: 0, fold: 0 }; // Track changes needed
+
+            // Determine the new outcome based on button clicked
+            if (selectedOutcomeText.startsWith('Win')) newOutcomeValue = 'Win~';
+            else if (selectedOutcomeText.startsWith('Lose')) newOutcomeValue = 'Lose';
+            else if (selectedOutcomeText.startsWith('Fold')) newOutcomeValue = 'Fold';
+            else return; // Should not happen with current buttons
+
+            // Check if this is a change from a previously logged outcome for *this specific hand*
+            if (previousOutcomeValue && previousOutcomeValue !== newOutcomeValue) {
+                // Decrement count for the old outcome
+                if (previousOutcomeValue === 'Win~') adjustment.win--;
+                else if (previousOutcomeValue === 'Lose') adjustment.lose--;
+                else if (previousOutcomeValue === 'Fold') adjustment.fold--;
             }
 
-             if (newlyLogged) {
-                handCount++; // Increment total ONLY if it's a new outcome for this hand
-                
-                // Record the hand in history
-                const handString = formatHandString(card1, card2, suitModifier);
-                recordHand(handString, currentOutcomeValue);
-             }
+            // Check if we are setting an outcome (either new or changing)
+            if (newOutcomeValue && newOutcomeValue !== previousOutcomeValue) {
+                 // Increment count for the new outcome
+                 if (newOutcomeValue === 'Win~') adjustment.win++;
+                 else if (newOutcomeValue === 'Lose') adjustment.lose++;
+                 else if (newOutcomeValue === 'Fold') adjustment.fold++;
+            }
 
-             // Ensure counts don't go negative (shouldn't happen with this logic, but safe)
-             winCount = Math.max(0, winCount);
-             loseCount = Math.max(0, loseCount);
-             foldCount = Math.max(0, foldCount);
+             // Apply adjustments
+             winCount += adjustment.win;
+             loseCount += adjustment.lose;
+             foldCount += adjustment.fold;
 
-            outcome = currentOutcomeValue; // Set/overwrite outcome state
+
+            // Increment total hand count ONLY if we are logging an outcome for the first time for this hand
+            // Or if we are changing the outcome (which implies it was already counted) - handle this carefully.
+            // Easiest: Only increment handCount if moving from no outcome (null) to an outcome.
+            if (!previousOutcomeValue && newOutcomeValue) {
+                handCount++;
+
+                 // Record the hand in history *only* when first logging an outcome for it
+                 const handString = formatHandString(card1, card2, suitModifier);
+                 recordHand(handString, newOutcomeValue);
+            } else if (previousOutcomeValue && newOutcomeValue !== previousOutcomeValue) {
+                 // If changing outcome, update the *last* history entry? Or log a new one?
+                 // Current recordHand adds a new entry. Let's stick with that for simplicity.
+                 // If you want to *update* the last entry, more complex logic is needed here.
+                 // For now, changing outcome logs a new entry and adjusts counts.
+                  const handString = formatHandString(card1, card2, suitModifier);
+                  recordHand(handString, newOutcomeValue); // Logs a duplicate hand with different outcome - decide if this is desired.
+                  // Alternative: Find and update last entry if hand matches? (More complex)
+            }
+
+
+            // Ensure counts don't go negative (safety check)
+            winCount = Math.max(0, winCount);
+            loseCount = Math.max(0, loseCount);
+            foldCount = Math.max(0, foldCount);
+             // Ensure handCount reflects the sum if adjustments were made
+             // This might be slightly off if changing outcome doesn't increment handCount but adjusts win/loss/fold.
+             // Let's recalculate handCount based on win/loss/fold to be safe after adjustments.
+             handCount = winCount + loseCount + foldCount; // Recalculate total based on counts
+
+
+            outcome = newOutcomeValue; // Set the new outcome state
             updateDisplay();
+        } else if (card1 && card2 && requiresModifier && !modifierSet) {
+             // Hand needs modifier ('s' or 'o') before outcome can be logged
+             // Optional: provide feedback (e.g., flash modifier buttons, vibrate)
+             alert("Please select 'Suited' or 'Off' before logging the outcome.");
+             if ('vibrate' in navigator) { navigator.vibrate([100, 50, 100]); }
+        } else {
+             // Cards not selected yet, do nothing or provide feedback
+             if ('vibrate' in navigator) { navigator.vibrate(50); }
         }
     }
 
+
+    // --- Simplified Event Handlers (No Long Press) ---
+
     function handleClearClick() {
-        // Check if it's a long press (reset stats)
-        if (clearButton.dataset.longPress === 'true') {
-            // Reset counts only, not current hand
-            resetCounts();
-            // Reset long press flag
-            clearButton.dataset.longPress = 'false';
-            return;
-        }
-        
-        // Regular clear - just reset current hand
+        // Regular clear - just reset current hand input state
         card1 = null;
         card2 = null;
         suitModifier = null;
@@ -427,76 +512,79 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleHideClick() {
-	console.log('clicked hide')
-        // Check if it's a long press (export to clipboard)
-        if (hideButton.dataset.longPress === 'true') {
-	    console.log('long pressed hide')
-            // Copy history to clipboard
-            copyHistoryToClipboard();
-            // Reset long press flag
-            hideButton.dataset.longPress = 'false';
-            return;
-        }
-            copyHistoryToClipboard();
-        
         // Regular click - toggle hide/show
         isHidden = !isHidden;
         hideButton.textContent = isHidden ? 'Show' : 'Hide';
-        updateDisplay();
+        updateDisplay(); // Update display to show/hide cards
     }
 
-    // Create export function that can be triggered via keyboard
-    function showExportPrompt() {
+    // --- History/Stats View Functions ---
+
+    function openHistoryView() {
+        if (historyView) {
+            historyView.classList.add('visible');
+        }
+    }
+
+    function closeHistoryView() {
+        if (historyView) {
+            historyView.classList.remove('visible');
+             // Reset copy button text if needed
+             copyHistoryBtn.textContent = 'Copy History to Clipboard';
+             copyHistoryBtn.classList.remove('copied-feedback');
+        }
+    }
+
+    function handleResetStatsClick() {
+        if (confirm('Reset ALL statistics (Win/Loss/Fold %)?\nThis only resets the counts, not the hand history.\nThis cannot be undone.')) {
+            resetCounts(); // Resets win/loss/fold/hand counts
+            closeHistoryView();
+             alert('Statistics have been reset.');
+        }
+    }
+
+    function handleResetHistoryClick() {
+        if (confirm('Permanently delete ALL recorded hand history?\nThis cannot be undone.')) {
+             resetHistory(); // Clears the handHistory array and saves
+             // Also reset counts, as history is gone? Or keep counts separate?
+             // Let's keep them separate for now. User might want to reset history but keep session stats.
+             // If you want to reset counts too, call resetCounts() here.
+             closeHistoryView();
+             alert('Hand history has been deleted.');
+             updateDisplay(); // Update stats in case counts were linked or changed
+        }
+    }
+
+    // Create export function that can be triggered via keyboard or button
+    function showExportPrompt() { // Renamed from original script
         if (handHistory.length === 0) {
             alert('No hand history to export.');
             return;
         }
         
-        if (confirm('Export hand history as CSV?')) {
-            exportHandHistory();
-        }
+        // Changed from confirm to direct export since it's behind a specific button now
+        exportHandHistory();
+        closeHistoryView(); // Optional: close view after export
     }
 
-    // --- Long Press Detection ---
-    let longPressTimer;
-    
-    function startLongPress(e) {
-        // Check if it's the clear button or hide button
-        if (e.target.classList.contains('clear')) {
-            longPressTimer = setTimeout(() => {
-                e.target.dataset.longPress = 'true';
-                e.target.classList.add('long-press');
-                
-                // Provide visual/haptic feedback that long press was detected
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(100);
-                }
-            }, 1000); // 1 second for long press
-        } else if (!e.target.classList.contains('clear') && e.target.classList.contains('btn-action')) {
-            // This is the hide/show button
-            longPressTimer = setTimeout(() => {
-                e.target.dataset.longPress = 'true';
-                e.target.classList.add('long-press');
-                
-                // Provide visual/haptic feedback
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(100);
-                }
-            }, 1000); // 1 second for long press
-        }
-    }
-    
-    function endLongPress(e) {
-        clearTimeout(longPressTimer);
-        e.target.classList.remove('long-press');
-        e.target.dataset.longPress = 'false';
-    }
+
+    // --- REMOVED Long Press Detection ---
+    // let longPressTimer;
+    // function startLongPress(e) { ... }
+    // function endLongPress(e) { ... }
 
     // --- Keyboard Shortcuts ---
     document.addEventListener('keydown', (e) => {
-        // Only process if no input elements are focused
+        // Allow shortcuts even if history view is open? Or block them?
+        // Let's allow them for now.
+
         if (document.activeElement.tagName === 'INPUT' || 
-            document.activeElement.tagName === 'TEXTAREA') {
+            document.activeElement.tagName === 'TEXTAREA' ||
+            document.activeElement.tagName === 'BUTTON') { // Ignore if focus is on a button too
+            // Exception: Allow Escape key to close history view
+            if (e.key === 'Escape' && historyView && historyView.classList.contains('visible')) {
+                 closeHistoryView();
+            }
             return;
         }
         
@@ -504,14 +592,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Card ranks
         if ('AKQJT98765432'.includes(key)) {
-            // Find the corresponding button and simulate a click
-            const buttonText = key === 'T' ? 'T' : key; // Handle 10 as T
-            const matchingButton = Array.from(cardButtons).find(btn => 
-                btn.textContent.trim().toUpperCase() === buttonText);
-            
-            if (matchingButton) {
-                handleCardClick(buttonText);
-            }
+            const buttonText = key === 'T' ? 'T' : key; // Handle 'T' for Ten
+            handleCardClick(buttonText); // Directly call handler
         }
         
         // Outcome keys
@@ -525,21 +607,25 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Modifiers
         if (key === 'S') handleModifierClick('s');
-        if (key === 'O') handleModifierClick('o');
+        if (key === 'O') handleModifierClick('o'); // 'O' for Offsuit
         
-        // Export data - Ctrl+E
+        // Export data - Ctrl+E (Keep this as an alternative)
         if (key === 'E' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
-            showExportPrompt();
+            showExportPrompt(); // Use the same function as the button
         }
         
-        // Reset history - Ctrl+Shift+R
+        // Reset history - Ctrl+Shift+R (Keep this, but maybe remove if button is enough)
         if (key === 'R' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
             e.preventDefault();
-            if (confirm('Reset ALL hand history? This cannot be undone.')) {
-                resetHistory();
-            }
+            // Directly call the confirmation and reset logic
+            handleResetHistoryClick(); // Reuse the handler for the button click
         }
+
+        // Close History View with Escape key
+        if (e.key === 'Escape' && historyView && historyView.classList.contains('visible')) {
+            closeHistoryView();
+       }
     });
 
     // --- Attach Event Listeners ---
@@ -554,58 +640,49 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => handleOutcomeClick(button.textContent));
     });
     
+    // Simplified listeners for Clear and Hide (no long press)
     if (clearButton) {
         clearButton.addEventListener('click', handleClearClick);
-        clearButton.addEventListener('touchstart', startLongPress);
-        clearButton.addEventListener('mousedown', startLongPress);
-        clearButton.addEventListener('touchend', endLongPress);
-        clearButton.addEventListener('mouseup', endLongPress);
-        clearButton.addEventListener('mouseleave', endLongPress);
     }
-    
     if (hideButton) {
         hideButton.addEventListener('click', handleHideClick);
-        hideButton.addEventListener('touchstart', startLongPress);
-        hideButton.addEventListener('mousedown', startLongPress);
-        hideButton.addEventListener('touchend', endLongPress);
-        hideButton.addEventListener('mouseup', endLongPress);
-        hideButton.addEventListener('mouseleave', endLongPress);
     }
 
-    // --- Add Swipe to Clear Gesture ---
-    let xDown = null;
-    let yDown = null;
-    
-    document.addEventListener('touchstart', (e) => {
-        xDown = e.touches[0].clientX;
-        yDown = e.touches[0].clientY;
-    });
-    
-    document.addEventListener('touchend', (e) => {
-        if (!xDown || !yDown) return;
-        
-        const xUp = e.changedTouches[0].clientX;
-        const yUp = e.changedTouches[0].clientY;
-        
-        const xDiff = xDown - xUp;
-        const yDiff = yDown - yUp;
-        
-        // Horizontal swipe detection (left to right)
-        if (Math.abs(xDiff) > Math.abs(yDiff) && xDiff < -50) {
-            // Swipe right detected - clear current hand
-            handleClearClick();
-        }
-        
-        // Vertical swipe down - export data
-        if (Math.abs(yDiff) > Math.abs(xDiff) && yDiff < -100) {
-            exportHandHistory();
-        }
-        
-        xDown = null;
-        yDown = null;
-    });
-    
-    // --- Prevent Zooming on Double-Tap for iOS ---
+    // --- NEW Event Listeners for History View ---
+    if (counterElement) {
+        counterElement.addEventListener('click', openHistoryView);
+    }
+    if (closeHistoryViewBtn) {
+        closeHistoryViewBtn.addEventListener('click', closeHistoryView);
+    }
+    if (copyHistoryBtn) {
+        copyHistoryBtn.addEventListener('click', copyHistoryToClipboard);
+    }
+     if (exportHistoryBtn) {
+         exportHistoryBtn.addEventListener('click', showExportPrompt); // Use same function as shortcut
+     }
+    if (resetStatsBtn) {
+        resetStatsBtn.addEventListener('click', handleResetStatsClick);
+    }
+    if (resetHistoryBtn) {
+        resetHistoryBtn.addEventListener('click', handleResetHistoryClick);
+    }
+    // Close history view if clicking the background overlay
+    if (historyView) {
+        historyView.addEventListener('click', (e) => {
+            if (e.target === historyView) { // Check if the click was directly on the overlay
+                closeHistoryView();
+            }
+        });
+    }
+
+
+    // --- REMOVED Swipe Gestures (or keep if desired, but they don't conflict) ---
+    // let xDown = null; ... etc.
+    // Keep if you still want swipe right to clear and swipe down to export.
+    // Modify swipe down to call showExportPrompt() if kept.
+
+    // --- Keep Existing Prevent Zoom / Pull-to-Refresh ---
     let lastTouchEnd = 0;
     document.addEventListener('touchend', (e) => {
         const now = Date.now();
@@ -615,19 +692,25 @@ document.addEventListener('DOMContentLoaded', () => {
         lastTouchEnd = now;
     }, { passive: false });
 
-    // --- Prevent Pull-to-Refresh in PWA Mode ---
     document.addEventListener('touchmove', (e) => {
-        if (window.navigator.standalone) {
-            if (e.touches.length === 1 && e.targetTouches[0].pageY < 10) {
-                e.preventDefault();
+        // Only prevent pull-to-refresh if the history view is NOT open
+        if (!historyView || !historyView.classList.contains('visible')) {
+            if (window.navigator.standalone) {
+                 // More robust check: prevent if scrolling starts near the top
+                 const touch = e.touches[0];
+                 // Check if scrollable element is at the top
+                 const isAtTop = document.documentElement.scrollTop === 0 && document.body.scrollTop === 0;
+                 if (isAtTop && touch.clientY < 50) { // Adjust 50px threshold if needed
+                     e.preventDefault();
+                 }
             }
         }
     }, { passive: false });
 
+
     // --- Initialize App ---
     loadData(); // Load saved data on startup
     
-    // Check if app is in standalone mode (installed PWA)
     if (window.matchMedia('(display-mode: standalone)').matches || 
         window.navigator.standalone === true) {
         document.body.classList.add('pwa-mode');

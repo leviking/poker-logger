@@ -177,6 +177,7 @@ body.pwa-mode {
     line-height: 1;
     letter-spacing: 1px;
     z-index: 3;
+    cursor: pointer;
 }
 
 /* Grid Container for Buttons */
@@ -251,27 +252,103 @@ body.pwa-mode {
      border-color: #cc5800;
 }
 
-/* Long press styles for action buttons */
-.btn-action.long-press {
-    background-color: #1565C0; /* Blue color for clipboard copy mode */
-    animation: pulse 0.5s infinite alternate;
+/* History View Overlay */
+.history-view {
+    display: none; /* Hidden by default */
+    position: fixed;
+    inset: 0; /* Covers the whole screen (top, right, bottom, left = 0) */
+    background-color: rgba(0, 0, 0, 0.85); /* Dark semi-transparent overlay */
+    z-index: 1000; /* Ensure it's on top */
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    animation: historyFadeIn 0.3s ease-out; /* Add fade-in */
 }
 
-.btn-action.copied {
-    background-color: #1565C0;
-    animation: fadeIn 0.3s;
+.history-view.visible {
+    display: flex; /* Show it */
 }
 
-@keyframes pulse {
-    from { opacity: 0.8; }
+@keyframes historyFadeIn {
+    from { opacity: 0; }
     to { opacity: 1; }
 }
 
-@keyframes fadeIn {
-    from { opacity: 0.8; }
-    to { opacity: 1; }
+/* Content Box within the Overlay */
+.history-content {
+    background-color: var(--bg-color); /* Use main background */
+    padding: 30px 25px 25px 25px; /* More padding */
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative; /* For positioning the close button */
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Space between buttons */
+    max-width: 90%;
+    width: 350px; /* Fixed width, but allow max-width */
+    font-family: sans-serif; /* Use a standard font here */
+    color: var(--text-color);
 }
 
+.history-content h2 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #333;
+    font-weight: 600;
+}
+
+/* Close Button */
+.close-history-btn {
+    position: absolute;
+    top: 5px;
+    right: 8px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    font-weight: bold;
+    color: #888;
+    cursor: pointer;
+    padding: 5px;
+    line-height: 1;
+}
+.close-history-btn:hover {
+    color: #333;
+}
+
+/* Action Buttons within the History View */
+.history-action-btn {
+    width: 100%; /* Make buttons full width of container */
+    padding: 12px 15px; /* Comfortable padding */
+    font-size: 1em; /* Standard font size */
+    background-color: var(--button-bg); /* Use default button style */
+    color: var(--button-text);
+    border: 1px solid #999;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+    text-align: center; /* Ensure text is centered */
+}
+
+/* Specific styling for potentially destructive actions */
+#reset-stats-btn,
+#reset-history-btn {
+    background-color: #e65353; /* Warning color */
+    color: white;
+    border-color: #c0392b;
+}
+
+#copy-history-btn.copied-feedback {
+    background-color: #1565C0; /* Blue feedback color */
+    color: white;
+    border-color: #104e8b;
+    transition: background-color 0.1s ease-out;
+}
+
+/* Override aspect ratio for these buttons */
+.history-action-btn {
+    aspect-ratio: auto; /* Reset aspect ratio */
+    min-height: auto; /* Reset min height */
+    justify-content: center; /* Center text again */
+    align-items: center;
+}
 /* Specific Outcome Styling (Win/Lose/Fold) */
 .btn-outcome.win {
     background-color: rgb(116, 177, 217); 
