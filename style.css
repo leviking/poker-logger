@@ -329,6 +329,19 @@ body.pwa-mode {
     padding: 5px; /* Add some padding around the table */
 }
 
+.history-info-links {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 24px 0 8px;
+    font-size: 0.85em;
+}
+
+.history-info-links a {
+    color: #8a3400;
+    text-underline-offset: 3px;
+}
+
 .history-table {
     width: 100%;
     border-collapse: collapse; /* Clean look */

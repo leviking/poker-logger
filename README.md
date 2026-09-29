@@ -61,6 +61,12 @@ python -m http.server 8000
 
 Then navigate to `http://localhost:8000` in your browser.
 
+## App Store information pages
+
+The static pages at `/privacy/` and `/support/` cover both the website and the native iPhone app. Use their public URLs for the App Store privacy policy and support fields. The support page must contain a working public contact method before deployment.
+
+Before merging the `app-store-info-pages` branch, replace both `__SUPPORT_EMAIL__` placeholders in `support/index.html` with the chosen address. Do not use the support URL in App Store Connect until the deployed page shows a working contact method.
+
 ## License
 
 MIT License
